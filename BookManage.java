@@ -4,6 +4,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.jar.JarOutputStream;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -127,10 +128,12 @@ public class BookManage extends JPanel implements ActionListener {
 		if(e.getSource()==jbArry[1])
 		{
 			this.deleteBook();
+			System.out.println("点击删除图书");
 		}
 		if(e.getSource()==jbArry[2])
 		{
 			this.updatetBook();
+			System.out.println("点击修改图书");
 		}
 		if(e.getSource()==jbArry[3])
 		{
@@ -169,7 +172,9 @@ public class BookManage extends JPanel implements ActionListener {
 				//如果存在该书号，弹出提示，否则插入图书信息
 				if(jtxtArry[0].getText().trim().equals(bookNo))
 				{
-					JOptionPane.showMessageDialog(this, "该书号已经存在！", "消息", JOptionPane.INFORMATION_MESSAGE);
+					JOptionPane.showMessageDialog(this, "该书号已经存在！", "温馨提示", 
+							JOptionPane.INFORMATION_MESSAGE);
+					return;
 				}else
 				{//将数据插入到数据库中
 					sql="insert into BOOK values('"+str1[0]+"','"+str1[1]+"','"+str1[2]+"','"+str1[3]+"'," +
@@ -201,11 +206,90 @@ public class BookManage extends JPanel implements ActionListener {
 	}
 	public void deleteBook()
 	{
-		
+		String BookNo=jtxtArry[0].getText().trim();
+		if(BookNo.equals(""))
+		{//若输入的图书号为空，则弹出信息提示
+			JOptionPane.showMessageDialog(this, "输入的图书号不能为空", "温馨提醒", JOptionPane.INFORMATION_MESSAGE);
+			return;
+		}
+		sql="select BookNo from record where bookNo="+Integer.parseInt(BookNo);
+		db=new DataBase();
+		db.selectDb(sql);
+		try {
+			if(db.rs.next())//若借阅图书信息表中有该书的记录，则弹出消息提示框
+			{
+				JOptionPane.showMessageDialog(this, "该书被借出，不能删除！", "消息", JOptionPane.INFORMATION_MESSAGE);
+				return;
+			}
+			else{//若借阅图书信息表中没有该书的记录，则从图书信息表中删除该图书
+			sql="delete from book where bookNo="+Integer.parseInt(BookNo);
+			int flag=db.updateDb(sql);
+			if(flag>0){JOptionPane.showMessageDialog(this, "删除成功！", "提示", JOptionPane.INFORMATION_MESSAGE);}
+			else {JOptionPane.showMessageDialog(this, "删除失败！", "提示", JOptionPane.INFORMATION_MESSAGE);}
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 	}
 	public void updatetBook()
 	{
-		
+		String bookNo=jtxtArry[0].getText().trim();
+		if(bookNo.equals("")){
+			JOptionPane.showMessageDialog(this, "输入要修改的书号不能为空！", "温馨提示", 
+					JOptionPane.INFORMATION_MESSAGE);
+			return;
+		}
+		for(int i=0;i<5;i++)
+		{
+			str1[i]=jtxtArry[i].getText().trim();
+		}
+		str1[5]=jcb1.getSelectedItem().toString();
+		str1[6]=jcb2.getSelectedItem().toString();
+		int bn=Integer.parseInt(bookNo);
+		db=new DataBase();
+		if(str1[1].equals("")){//更新除书名以外的所有信息
+			sql="update book set Author='"+str1[2]+"'," +
+					"Publishment='"+str1[3]+"'," +
+							"BuyTime='"+str1[4]+"'," +
+									"Borrowed='"+str1[5]+"'," +
+											"Ordered='"+str1[6]+"' " +
+													"where BookNo="+bn;
+			
+			db.updateDb(sql);
+			db.updateDb(sql);
+			if(db.updateDb(sql)>0){
+				JOptionPane.showMessageDialog(this, "修改成功！", "消息", JOptionPane.INFORMATION_MESSAGE);
+					sql="select * from book where BookNo="+bn;
+					db.selectDb(sql);
+					try {
+						while(db.rs.next()){
+							for(int j=0;j<7;j++){
+							str1[j]=db.rs.getString(j+1).trim();
+							
+							}
+							Vector<String> v=new Vector<String>();
+							for(int i=0;i<7;i++){
+								v.add(str1[i]);
+								if(i<5) jtxtArry[i].setText("");//清空文本框
+							}
+							data.add(v);
+							dtm.setDataVector(data, head);
+							jt.setModel(dtm);
+							jt.updateUI();
+							jt.repaint();
+							return;
+						}
+					} catch (SQLException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				
+				return;
+			}else{
+				JOptionPane.showMessageDialog(this, "修改失败！", "提示", JOptionPane.INFORMATION_MESSAGE);
+				return;
+			}
+		}
 	}
 	public void searchBook()
 	{
